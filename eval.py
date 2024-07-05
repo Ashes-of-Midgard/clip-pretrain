@@ -51,7 +51,7 @@ def eval_epoch(epoch:int,
             else:
                 avg_loss.update(loss.item())
 
-            acc = get_acc(topk)
+            acc = get_acc(logits, labels, topk)
             for k in topk:
                 avg_acc[k].update(acc[k])
             
