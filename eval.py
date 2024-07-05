@@ -34,7 +34,7 @@ def eval_epoch(epoch:int,
                topk:Union[List[int], Tuple[int, ...]],
                device:torch.device) -> Tuple[Dict[int, float], float]:
     avg_loss = AverageMeter()
-    avg_acc = {k: AverageMeter for k in topk}
+    avg_acc = {k: AverageMeter() for k in topk}
     tbar = tqdm.tqdm(eval_loader)
     with torch.no_grad():
         for i, (images, labels) in enumerate(tbar):
