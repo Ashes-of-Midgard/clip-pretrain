@@ -54,6 +54,6 @@ def eval_epoch(epoch:int,
             acc = get_acc(logits, labels, topk)
             for k in topk:
                 avg_acc[k].update(acc[k])
-                
+
             tbar.set_description('Epoch %d, eval loss %.4f, eval acc %.2f%%' % (epoch, avg_loss.avg, 100 * avg_acc[1].avg))
-    return {avg_acc[k].avg for k in topk}, avg_loss.avg
+    return {k: avg_acc[k].avg for k in topk}, avg_loss.avg
