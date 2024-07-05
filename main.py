@@ -5,7 +5,7 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.utils.data.dataloader import DataLoader
 from torchvision import datasets
-from torchvision.transforms import Compose, RandomHorizontalFlip, ToTensor, RandomResizedCrop, Normalize
+from torchvision.transforms import Compose, RandomHorizontalFlip, ToTensor, RandomResizedCrop, Normalize, Resize
 import os
 
 import model
@@ -32,6 +32,7 @@ if __name__ == '__main__':
                                RandomResizedCrop(size=(224,224)),
                                RandomHorizontalFlip()])
     eval_transform = Compose([ToTensor(),
+                              Resize((224,224)),
                               Normalize(mean=[125.307, 122.961, 113.8575],
                                         std=[51.5865, 50.847, 51.255])])
     train_set = datasets.CIFAR10('./data/cifar10',train=True,download=True,transform=train_transform)
