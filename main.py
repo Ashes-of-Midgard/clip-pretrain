@@ -67,7 +67,7 @@ if __name__ == '__main__':
                                criterion,
                                topk,
                                device)
-        print('Epoch %d, eval loss %.4f, acc@1 %.2f\%, acc@5 %.2f\%' % (epoch, loss, 100 * acc[1], 100 * acc[5]))
+        print('Epoch %d, eval loss %.4f, acc@1 %.2f%%, acc@5 %.2f%%' % (epoch, loss, 100 * acc[1], 100 * acc[5]))
         if acc[1] > best_acc:
             best_acc = acc[1]
             checkpoint = {'epoch':epoch,
@@ -77,5 +77,5 @@ if __name__ == '__main__':
             with open('checkpoints/best_acc.pth.tar', 'w') as f:
                 torch.save(checkpoint, f)
     
-    print('Training finished, best acc: %.2f\%, best epoch: %d' % 100*checkpoint['acc'], checkpoint['epoch'])
+    print('Training finished, best acc: %.2f%%, best epoch: %d' % 100*checkpoint['acc'], checkpoint['epoch'])
             
