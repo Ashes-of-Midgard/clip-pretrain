@@ -74,7 +74,7 @@ if __name__ == '__main__':
                           'acc':acc[1],
                           'state_dict':model_train.state_dict()}
             os.makedirs('checkpoints',exist_ok=True)
-            with open('checkpoints/best_acc.pth.tar', 'w') as f:
+            with open('checkpoints/best_acc.pth.tar', 'wb') as f:
                 torch.save(checkpoint, f)
     
     print('Training finished, best acc: %.2f%%, best epoch: %d' % 100*checkpoint['acc'], checkpoint['epoch'])
