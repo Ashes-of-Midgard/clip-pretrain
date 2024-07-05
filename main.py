@@ -50,6 +50,7 @@ if __name__ == '__main__':
     best_acc = 0.
     checkpoint = None
     for epoch in range(epoch_num):
+        
         model_train.train()
         train_epoch(epoch,
                     model_train,
@@ -58,6 +59,7 @@ if __name__ == '__main__':
                     train_loader,
                     criterion,
                     device)
+        
         model_train.eval()
         acc, loss = eval_epoch(epoch,
                                model_train,
