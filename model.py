@@ -70,6 +70,7 @@ class CLIPZeroshotClassifier(CLIP):
         category_tokens = tokenize(categories).to(device)
         with torch.no_grad():
             category_embeddings = self.encode_text(category_tokens)
+            category_embeddings = category_embeddings / category_embeddings.norm(dim=1, keepdim=True)
         return category_embeddings
 
     def forward(self, images: Tensor):
