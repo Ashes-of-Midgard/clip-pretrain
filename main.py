@@ -77,5 +77,5 @@ if __name__ == '__main__':
             with open('checkpoints/best_acc.pth.tar', 'wb') as f:
                 torch.save(checkpoint, f)
     
-    print('Training finished, best acc: %.2f%%, best epoch: %d' % 100*checkpoint['acc'], checkpoint['epoch'])
+    print('Training finished, best acc: %.2f%%, best epoch: %d' % (100*checkpoint['acc'], checkpoint['epoch']))
             
