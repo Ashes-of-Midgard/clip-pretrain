@@ -20,7 +20,7 @@ if __name__ == '__main__':
     epoch_num = 100
     batch_size_train = 32
     batch_size_eval = 32
-    lr = 0.05
+    lr = 1e-5
     topk = (1,5)
 
     model_train,_ = model.load('RN50', device=device, cls_categories=CIFAR10_CATEGORIES)
