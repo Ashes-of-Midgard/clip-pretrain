@@ -7,6 +7,7 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision import datasets
 from torchvision.transforms import Compose, RandomHorizontalFlip, ToTensor, RandomResizedCrop, Normalize, Resize
 import os
+import argparse
 
 import model
 from train import train_epoch
@@ -15,15 +16,22 @@ from dataset import SHIP_CATEGORIES, InfraredShipDataset
 
 
 if __name__ == '__main__':
+    # parse command line args
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--backbone, -b', type=str, default='RN50')
+    parser.add_argument('--batch_size_train, -bst', type=int, default=16)
+    parser.add_argument('--batch_size_val, -bsv', type=int, default=16)
+    args = parser.parse_args()
+
     device = 'cuda' if cuda.is_available() else 'cpu'
     print('Using device %s' % device)
     epoch_num = 20
-    batch_size_train = 16
-    batch_size_eval = 16
+    batch_size_train = args.batch_size_train
+    batch_size_eval = args.batch_size_val
     lr = 1e-5
     topk = (1,)
 
-    model_train,_ = model.load('RN50', device=device, cls_categories=SHIP_CATEGORIES)
+    model_train,_ = model.load(args.backbone, device=device, cls_categories=SHIP_CATEGORIES)
     model_train.frozen_text_backbone()
 
     train_transform = Compose([ToTensor(),
