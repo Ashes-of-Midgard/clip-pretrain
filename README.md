@@ -8,8 +8,20 @@ pip install ftfy regex tqdm packaging
 ```
 
 # Prepare dataset
-下载cifar10数据集（暂时用于测试效果）
-把cifar-10-batches-py放在data/cifar10
+数据集链接: https://pan.baidu.com/s/1D-gw8qkoJt3UEpelYa3oqQ
+提取码: 4kxd
+下载后提取解压，按照如下目录放置在data文件夹下
+|- data
+    |- train
+    |- val
+    |- gen_txt.py
+    |- gen_image.py
+
+搜索所有的desktop.ini，并删除；修改gen_txt.py当中的root为'./'，然后进入data目录下
+```shell
+cd data
+python gen_txt.py
+```
 
 # Train
 ```shell

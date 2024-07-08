@@ -1,2 +1,4 @@
 data/
+!data/cls_names.py
 __pycache__/
+checkpoints/

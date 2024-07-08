@@ -38,7 +38,7 @@ def train_epoch(epoch:int,
             optim.step()
             avg_loss.update(loss.item())
 
-        tbar.set_description('Epoch %d, training loss %.4f, lr %0.6f' % (epoch, avg_loss.avg, optim.param_groups[0]['lr']))
+        tbar.set_description('Epoch %d, training loss %.4f, lr %.2e' % (epoch, avg_loss.avg, optim.param_groups[0]['lr']))
     if scheduler is not None:
         scheduler.step()
     return avg_loss.avg
