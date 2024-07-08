@@ -18,9 +18,9 @@ from dataset import SHIP_CATEGORIES, InfraredShipDataset
 if __name__ == '__main__':
     # parse command line args
     parser = argparse.ArgumentParser()
-    parser.add_argument('--backbone, -b', type=str, default='RN50')
-    parser.add_argument('--batch_size_train, -bst', type=int, default=16)
-    parser.add_argument('--batch_size_val, -bsv', type=int, default=16)
+    parser.add_argument('--backbone', type=str, default='RN50')
+    parser.add_argument('--batch_size_train', type=int, default=16)
+    parser.add_argument('--batch_size_val', type=int, default=16)
     args = parser.parse_args()
 
     device = 'cuda' if cuda.is_available() else 'cpu'
