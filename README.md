@@ -1,9 +1,10 @@
 # Installation
 
 ```shell
-conda create -n clip-pretrain python=3.8 -y
+conda create -n clip-pretrain python=3.8 pytorch==1.10.1 torchvision==0.11.2 cudatoolkit=11.3 -c pytorch -y
 conda activate clip-pretrain
-conda install -y -c pytorch pytorch=1.7.1 torchvision cudatoolkit=11.0
+pip install openmim
+mim install mmyolo
 pip install ftfy regex tqdm packaging
 ```
 
@@ -23,7 +24,12 @@ cd data
 python gen_txt.py
 ```
 
+# Prepare pretrained models
+RN50不需要手动下载，YOLOv8可以从链接：https://download.openmmlab.com/mmyolo/v0/yolov8/yolov8_n_mask-refine_syncbn_fast_8xb16-500e_coco/yolov8_n_mask-refine_syncbn_fast_8xb16-500e_coco_20230216_101206-b975b1cd.pth，下载
+下载后删除文件名最后的日期后缀（即yolov8_n_mask-refine_syncbn_fast_8xb16-500e_coco.pth），放置在model/pretrained目录下.
+
 # Train
 ```shell
-python main.py
+python main.py --backbone RN50
+python main.py --backbone YOLOv8
 ```

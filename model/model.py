@@ -1,4 +1,4 @@
-from typing import Tuple, Union, List, Callable
+from typing import Tuple, Union, List, Callable, Dict
 import torch
 from torch import nn
 from torch import Tensor
@@ -10,7 +10,9 @@ import urllib
 import tqdm
 from PIL import Image
 
-from clip import CLIP, tokenize, convert_weights, available_models
+from clip import convert_weights
+from .yolov8_backbone import YOLOv8Backbone
+from .clip_zeroshot import CLIPZeroshotClassifier
 
 _MODELS = {
     "RN50": "https://openaipublic.azureedge.net/clip/models/afeb0e10f9e5a86da6080e35cf09123aca3b358a0c3e3b6c78a7b63bc04b6762/RN50.pt",
@@ -22,6 +24,7 @@ _MODELS = {
     "ViT-B/16": "https://openaipublic.azureedge.net/clip/models/5806e77cd80f8b59890b7e101eabd078d9fb84e6937f9e85e4ecb61988df416f/ViT-B-16.pt",
     "ViT-L/14": "https://openaipublic.azureedge.net/clip/models/b8cca3fd41ae0c99ba7e8951adf17d267cdb84cd88be6f7c2e0eca1737a03836/ViT-L-14.pt",
     "ViT-L/14@336px": "https://openaipublic.azureedge.net/clip/models/3035c92b350959924f9f00213499208652fc7ea050643e8b385c2dac08641f02/ViT-L-14-336px.pt",
+    "YOLOv8": "https://openaipublic.azureedge.net/clip/models/afeb0e10f9e5a86da6080e35cf09123aca3b358a0c3e3b6c78a7b63bc04b6762/RN50.pt"
 }
 
 try:
@@ -30,68 +33,6 @@ try:
 except ImportError:
     BICUBIC = Image.BICUBIC
 
-class CLIPZeroshotClassifier(CLIP):
-    """ Implementation of a classifier in CLIP-zeroshot way
-        It is finetunable with cls datasets
-    """
-    def __init__(self,
-                 embed_dim: int,
-                 # vision
-                 image_resolution: int,
-                 vision_layers: Union[Tuple[int, int, int, int], int],
-                 vision_width: int,
-                 vision_patch_size: int,
-                 # text
-                 context_length: int,
-                 vocab_size: int,
-                 transformer_width: int,
-                 transformer_heads: int,
-                 transformer_layers: int,
-                 # cls
-                 cls_categories: Union[List[str], Tuple[str, ...]]
-                 ):
-        super().__init__(embed_dim,
-                         image_resolution,
-                         vision_layers,
-                         vision_width,
-                         vision_patch_size,
-                         context_length,
-                         vocab_size,
-                         transformer_width,
-                         transformer_heads,
-                         transformer_layers)
-        self.cls_categories = cls_categories
-        self.category_embeddings = nn.parameter.Parameter(self.embed_categories(self.cls_categories), requires_grad=False)
-
-    def embed_categories(self, categories: Union[List[str], Tuple[str, ...]]) -> Tensor:
-        """ Embed the categories' name to Tensors
-        """
-        device = next(self.parameters()).device
-        category_tokens = tokenize(categories).to(device)
-        with torch.no_grad():
-            category_embeddings = self.encode_text(category_tokens)
-            category_embeddings = category_embeddings / category_embeddings.norm(dim=1, keepdim=True)
-        return category_embeddings
-
-    def forward(self, images: Tensor):
-        # extract image features
-        image_features = self.encode_image(images)
-        image_features = image_features / image_features.norm(dim=1, keepdim=True)
-
-        # cosine similarity as logits
-        logit_scale = self.logit_scale.exp()
-        category_embeddings = self.category_embeddings.to(self.dtype)
-        logits_per_image = logit_scale * image_features @ category_embeddings.t()
-
-        return logits_per_image
-    
-    def frozen_text_backbone(self):
-        self.token_embedding.requires_grad_(False)
-        self.positional_embedding.requires_grad_(False)
-        self.transformer.requires_grad_(False)
-        self.ln_final.requires_grad_(False)
-        self.text_projection.requires_grad_(False)
-    
 
 def build_model_zeroshot_classifier(state_dict: dict, cls_categories: Union[List[str], Tuple[str, ...]], fp16: bool=False) -> CLIPZeroshotClassifier:
     vit = "visual.proj" in state_dict
@@ -181,6 +122,11 @@ def _transform(n_px):
     ])
 
 
+def available_models() -> List[str]:
+    """Returns the names of available CLIP models"""
+    return list(_MODELS.keys())
+
+
 def load(name: str,
          device: Union[str, torch.device] = "cuda" if torch.cuda.is_available() else "cpu",
          download_root: str = None,
@@ -223,7 +169,27 @@ def load(name: str,
             # loading saved state dict
             state_dict = torch.load(opened_file, map_location="cpu")
 
-    model = build_model_zeroshot_classifier(state_dict, cls_categories, fp16).to(device)
+    model = build_model_zeroshot_classifier(state_dict, cls_categories, fp16)
+
+    if name == 'YOLOv8':
+        pretrain_path = './model/pretrained/yolov8_l_mask-refine_syncbn_fast_8xb16-500e_coco.pth'
+        input_channels = 3
+        output_channels = 512
+        embed_dim = 1024
+        num_heads = output_channels // 64
+        input_resolution = 640
+        model.visual = YOLOv8Backbone(input_channels, output_channels, embed_dim, num_heads, input_resolution)
+        darknet_state_dict = {}
+        yolov8_state_dict = torch.load(pretrain_path)['state_dict']
+        yolov8_state_dict: Dict
+        for key, value in yolov8_state_dict.items():
+            key: str
+            if key.startswith('backbone'):
+                darknet_state_dict[key[9:]] = value
+        model.visual.darknet.load_state_dict(darknet_state_dict)
+
     if str(device) == "cpu":
         model.float()
+        
+    model.to(device)
     return model, _transform(model.visual.input_resolution)
