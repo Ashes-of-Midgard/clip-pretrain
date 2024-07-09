@@ -40,6 +40,7 @@ if __name__ == '__main__':
     image_size = (224, 224) if args.backbone != 'YOLOv8' else (640, 640)
 
     time_stamp = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
+    os.makedirs('./logs', exist_ok=True)
     log_file = './logs/' + "log_"+time_stamp + '.log'
     with open(log_file, 'w') as f:
         f.write('backbone: '+args.backbone+'\n')
