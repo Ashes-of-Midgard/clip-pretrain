@@ -111,7 +111,7 @@ if __name__ == '__main__':
                           'acc':acc[1],
                           'state_dict':model_train.state_dict()}
             os.makedirs('checkpoints',exist_ok=True)
-            with open(f'logs/best_acc_epoch_{epoch}_{args.backbone}_{time_stamp}.pth.tar', 'wb') as f:
+            with open(f'logs/best_acc_{args.backbone}_{time_stamp}.pth.tar', 'wb') as f:
                 torch.save(checkpoint, f)
 
         if args.mode=='train':
