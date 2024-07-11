@@ -1,14 +1,13 @@
 import torch
-from torch import cuda
+from torch import Tensor
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.utils.data.dataloader import DataLoader
-from torchvision import datasets
 from torchvision.transforms import Compose, RandomHorizontalFlip, ToTensor, RandomResizedCrop, Normalize, Resize
 import os
 import argparse
-from typing import List
+from typing import List, Dict
 from datetime import datetime
 
 import model
@@ -26,31 +25,36 @@ if __name__ == '__main__':
     parser.add_argument('--learning_rate', type=float, default=1e-4)
     parser.add_argument('--epoch_num', type=int, default=20)
     parser.add_argument('--milestones', type=List, default=[5, 15])
+    parser.add_argument('--mode', type=str, choices=['train', 'eval'], default='train')
+    parser.add_argument('--checkpoint', type=str)
     args = parser.parse_args()
 
-    device = 'cuda' if cuda.is_available() else 'cpu'
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print('Using device %s' % device)
     
-    epoch_num = args.epoch_num
+    backbone = args.backbone
     batch_size_train = args.batch_size_train
     batch_size_eval = args.batch_size_eval
     lr = args.learning_rate
+    epoch_num = args.epoch_num if args.mode=='train' else 1
+    milestones = args.milestones
+    checkpoint_path = args.checkpoint
 
     topk = (1,)
-    image_size = (224, 224) if args.backbone != 'YOLOv8' else (640, 640)
+    image_size = (224, 224) if backbone != 'YOLOv8' else (640, 640)
 
     time_stamp = datetime.now().strftime("%d_%m_%Y_%H_%M_%S")
     os.makedirs('./logs', exist_ok=True)
-    log_file = './logs/' + "log_"+time_stamp + '.log'
+    log_file = './logs/' + "log_" + backbone + '_' + args.mode + '_' + time_stamp + '.log'
     with open(log_file, 'w') as f:
-        f.write('backbone: '+args.backbone+'\n')
+        f.write('backbone: '+backbone+'\n')
         f.write('learning_rate: '+str(lr)+'\n')
         f.write('batch_size_train: '+str(batch_size_train)+'\n')
         f.write('batch_size_eval: '+str(batch_size_eval)+'\n')
         f.write('epoch_num: '+str(epoch_num)+'\n')
         f.write('image_size: ' + str(image_size[0]) + '\n')
 
-    model_train,_ = model.load(args.backbone, device=device, cls_categories=SHIP_CATEGORIES)
+    model_train,_ = model.load(backbone, device=device, cls_categories=SHIP_CATEGORIES)
     model_train.frozen_text_backbone()
 
     train_transform = Compose([ToTensor(),
@@ -78,7 +82,16 @@ if __name__ == '__main__':
     criterion = CrossEntropyLoss()
 
     best_acc = 0.
-    checkpoint = None
+    # load checkpoint
+    if checkpoint_path is not None:
+        loaded_checkpoint = torch.load(checkpoint_path)
+        loaded_state_dict: Dict = loaded_checkpoint['state_dict']
+        converted_state_dict = {}
+        for key, value in loaded_state_dict.items():
+            value: Tensor
+            converted_state_dict[key] = value.to(device)
+        model_train.load_state_dict(converted_state_dict)
+
     for epoch in range(epoch_num):
         model_train.eval()
         acc, loss = eval_epoch(epoch,
@@ -87,9 +100,11 @@ if __name__ == '__main__':
                                criterion,
                                topk,
                                device)
+        
         print('Epoch %d, eval loss %.4f, acc@ %.2f%%' % (epoch, loss, 100 * acc[1]))
         with open(log_file, 'a') as f:
             f.write('Epoch %d, eval loss %.4f, acc@ %.2f%%' % (epoch, loss, 100 * acc[1]))
+
         if acc[1] > best_acc:
             best_acc = acc[1]
             checkpoint = {'epoch':epoch,
@@ -98,14 +113,16 @@ if __name__ == '__main__':
             os.makedirs('checkpoints',exist_ok=True)
             with open(f'logs/best_acc_epoch_{epoch}_{args.backbone}_{time_stamp}.pth.tar', 'wb') as f:
                 torch.save(checkpoint, f)
-        
-        model_train.train()
-        train_epoch(epoch,
-                    model_train,
-                    optim,
-                    scheduler,
-                    train_loader,
-                    criterion,
-                    device)
+
+        if args.mode=='train':
+            model_train.train()
+            train_epoch(epoch,
+                        model_train,
+                        optim,
+                        scheduler,
+                        train_loader,
+                        criterion,
+                        device)
     
-    print('Training finished, best acc: %.2f%%, best epoch: %d' % (100*checkpoint['acc'], checkpoint['epoch']))
+    if args.mode=='train':
+        print('Training finished, best acc: %.2f%%, best epoch: %d' % (100*checkpoint['acc'], checkpoint['epoch']))

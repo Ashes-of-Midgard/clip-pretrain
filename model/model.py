@@ -172,13 +172,23 @@ def load(name: str,
     model = build_model_zeroshot_classifier(state_dict, cls_categories, fp16)
 
     if name == 'YOLOv8':
-        pretrain_path = './model/pretrained/yolov8_l_mask-refine_syncbn_fast_8xb16-500e_coco.pth'
-        input_channels = 3
-        output_channels = 512
+        pretrain_path = './model/pretrained/yolov8_s_mask-refine_syncbn_fast_8xb16-500e_coco.pth'
+        # csp darknet related
+        deepen_factor = 0.33
+        widen_factor = 0.5
+        last_stage_out_channels = 1024
+        norm_cfg = dict(type='BN', momentum=0.03, eps=0.001)
+        # attention pool related
         embed_dim = 1024
-        num_heads = output_channels // 64
+        num_heads = last_stage_out_channels // 64
         input_resolution = 640
-        model.visual = YOLOv8Backbone(input_channels, output_channels, embed_dim, num_heads, input_resolution)
+        model.visual = YOLOv8Backbone(deepen_factor=deepen_factor,
+                                      widen_factor=widen_factor,
+                                      last_stage_out_channels=last_stage_out_channels,
+                                      norm_cfg=norm_cfg,
+                                      embed_dim=embed_dim,
+                                      num_heads=num_heads,
+                                      input_resolution=input_resolution)
         darknet_state_dict = {}
         yolov8_state_dict = torch.load(pretrain_path)['state_dict']
         yolov8_state_dict: Dict

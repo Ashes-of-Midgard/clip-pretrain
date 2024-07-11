@@ -25,8 +25,8 @@ python gen_txt.py
 ```
 
 # Prepare pretrained models
-RN50不需要手动下载，YOLOv8可以从链接：https://download.openmmlab.com/mmyolo/v0/yolov8/yolov8_n_mask-refine_syncbn_fast_8xb16-500e_coco/yolov8_n_mask-refine_syncbn_fast_8xb16-500e_coco_20230216_101206-b975b1cd.pth，下载
-下载后删除文件名最后的日期后缀（即yolov8_n_mask-refine_syncbn_fast_8xb16-500e_coco.pth），放置在model/pretrained目录下.
+RN50不需要手动下载，YOLOv8可以从链接：https://download.openmmlab.com/mmyolo/v0/yolov8/yolov8_s_mask-refine_syncbn_fast_8xb16-500e_coco/yolov8_s_mask-refine_syncbn_fast_8xb16-500e_coco_20230216_095938-ce3c1b3f.pth，下载
+下载后删除文件名最后的日期后缀（即yolov8_s_mask-refine_syncbn_fast_8xb16-500e_coco.pth），放置在model/pretrained目录下.
 
 # Train
 ```shell
