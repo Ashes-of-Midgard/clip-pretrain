@@ -103,7 +103,7 @@ if __name__ == '__main__':
         
         print('Epoch %d, eval loss %.4f, acc@ %.2f%%' % (epoch, loss, 100 * acc[1]))
         with open(log_file, 'a') as f:
-            f.write('Epoch %d, eval loss %.4f, acc@ %.2f%%' % (epoch, loss, 100 * acc[1]))
+            f.write('Epoch %d, eval loss %.4f, acc@ %.2f%%\n' % (epoch, loss, 100 * acc[1]))
 
         if acc[1] > best_acc:
             best_acc = acc[1]
