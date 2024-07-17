@@ -18,7 +18,7 @@ def get_correct(preds:Tensor,
         labels = torch.argmax(labels, dim=1)
 
     id_mask_of_cls = {}
-    id_mask_of_cls['all'] = torch.ones_like(labels)
+    id_mask_of_cls['all'] = torch.tensor([True for _ in range(len(labels))])
     if num_cls is not None:
         for i in range(num_cls):
             id_mask_of_cls[i] = (labels==i)
@@ -73,4 +73,5 @@ def eval_epoch(epoch:int,
                     correct_whole_set[key][k] = torch.cat((correct_whole_set[key][k], correct[key][k]), dim=0)
 
             tbar.set_description('Epoch %d, eval loss %.4f, eval acc %.2f%%' % (epoch, avg_loss.avg, 100 * correct_whole_set['all'][1].float().mean().item()))
+    
     return {key: {k: correct_whole_set[key][k].float().mean().item() for k in topk} for key in correct_whole_set.keys()}, avg_loss.avg
