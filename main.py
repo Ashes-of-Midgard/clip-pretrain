@@ -110,12 +110,8 @@ if __name__ == '__main__':
         print('Epoch %d, eval loss %.4f, acc %.2f%%' % (epoch, loss, 100 * acc['all'][1]))
         print(f'Acc of categories: {acc_of_categories}')
         with open(log_file, 'a') as f:
-<<<<<<< HEAD
             f.write('Epoch %d, eval loss %.4f, acc %.2f%%\n' % (epoch, loss, 100 * acc['all'][1]))
             f.write(f'Acc of categories: {acc_of_categories}\n')
-=======
-            f.write('Epoch %d, eval loss %.4f, acc@ %.2f%%\n' % (epoch, loss, 100 * acc[1]))
->>>>>>> a55bcd1c1304207016a3ee130edfe93a31d81f3e
 
         if acc['all'][1] > best_acc:
             best_acc = acc['all'][1]
