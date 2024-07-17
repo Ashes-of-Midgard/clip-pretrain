@@ -64,7 +64,7 @@ if __name__ == '__main__':
                                          std=[0.0282, 0.0282, 0.0282]),
                                RandomResizedCrop(size=image_size),
                                RandomHorizontalFlip(),
-                               RandomAutocontrast()])
+                               RandomRotation((-180,180))])
     eval_transform = Compose([ToTensor(),
                               Resize(image_size),
                               Normalize(mean=[0.1168, 0.1168, 0.1168],
@@ -134,3 +134,5 @@ if __name__ == '__main__':
     
     if args.mode=='train':
         print('Training finished, best acc: %.2f%%, best epoch: %d' % (100*checkpoint['acc'], checkpoint['epoch']))
+        with open(log_file, 'a') as f:
+            f.write('Training finished, best acc: %.2f%%, best epoch: %d' % (100*checkpoint['acc'], checkpoint['epoch']))
