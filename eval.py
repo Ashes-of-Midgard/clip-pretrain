@@ -1,4 +1,4 @@
-from typing import Tuple, Callable, List, Union, Dict
+from typing import Tuple, Callable, List, Union, Dict, Optional
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
@@ -10,21 +10,32 @@ from model import CLIPZeroshotClassifier
 from utils import AverageMeter
 
 
-def get_acc(preds:Tensor,
-            labels:Tensor,
-            topk:Union[List[int], Tuple[int, ...]]) -> Dict[int, float]:
+def get_correct(preds:Tensor,
+                labels:Tensor,
+                topk:Union[List[int], Tuple[int, ...]],
+                num_cls:Optional[int]=None) -> Dict[Union[int, str], Dict[int, float]]:
     if len(labels.shape) == 2:
         labels = torch.argmax(labels, dim=1)
 
-    maxk = max(topk)
-    _, pred_indices = preds.topk(maxk, dim=1)
-      
-    acc = {}
-    for k in topk:
-        correct = pred_indices[:, :k].eq(labels.view(-1, 1).expand_as(pred_indices[:, :k])).any(dim=1)
-        acc[k] = correct.float().mean().item()
+    id_mask_of_cls = {}
+    id_mask_of_cls['all'] = torch.ones_like(labels)
+    if num_cls is not None:
+        for i in range(num_cls):
+            id_mask_of_cls[i] = (labels==i)
+            
+    correct = {}
+    for key, id_mask in id_mask_of_cls.items():
+        maxk = max(topk)
+        _, pred_indices = preds.topk(maxk, dim=1)
 
-    return acc
+        correct[key] = {}
+        pred_indices_selected = pred_indices[id_mask]
+        labels_selected = labels[id_mask]
+        
+        for k in topk:
+            correct[key][k] = pred_indices_selected[:, :k].eq(labels_selected.view(-1, 1).expand_as(pred_indices_selected[:, :k])).any(dim=1)
+
+    return correct
 
 
 def eval_epoch(epoch:int,
@@ -32,9 +43,14 @@ def eval_epoch(epoch:int,
                eval_loader:DataLoader,
                criterion:Callable,
                topk:Union[List[int], Tuple[int, ...]],
+               num_cls:Optional[int],
                device:torch.device) -> Tuple[Dict[int, float], float]:
     avg_loss = AverageMeter()
-    avg_acc = {k: AverageMeter() for k in topk}
+    correct_whole_set = {}
+    correct_whole_set['all'] = {k: torch.empty([0], dtype=torch.bool, device=device) for k in topk}
+    if num_cls is not None:
+        for i in range(num_cls):
+            correct_whole_set[i] = {k: torch.empty([0], dtype=torch.bool, device=device) for k in topk}
     tbar = tqdm.tqdm(eval_loader)
     with torch.no_grad():
         for i, (images, labels) in enumerate(tbar):
@@ -51,9 +67,10 @@ def eval_epoch(epoch:int,
             else:
                 avg_loss.update(loss.item())
 
-            acc = get_acc(logits, labels, topk)
-            for k in topk:
-                avg_acc[k].update(acc[k])
+            correct = get_correct(logits, labels, topk, num_cls)
+            for key in correct.keys():
+                for k in topk:
+                    correct_whole_set[key][k] = torch.cat((correct_whole_set[key][k], correct[key][k]), dim=0)
 
-            tbar.set_description('Epoch %d, eval loss %.4f, eval acc %.2f%%' % (epoch, avg_loss.avg, 100 * avg_acc[1].avg))
-    return {k: avg_acc[k].avg for k in topk}, avg_loss.avg
+            tbar.set_description('Epoch %d, eval loss %.4f, eval acc %.2f%%' % (epoch, avg_loss.avg, 100 * correct_whole_set['all'][1].float().mean().item()))
+    return {key: {k: correct_whole_set[key][k].float().mean().item() for k in topk} for key in correct_whole_set.keys()}, avg_loss.avg

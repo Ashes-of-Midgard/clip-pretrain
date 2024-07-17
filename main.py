@@ -4,7 +4,9 @@ from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from torch.optim.lr_scheduler import MultiStepLR
 from torch.utils.data.dataloader import DataLoader
-from torchvision.transforms import Compose, RandomHorizontalFlip, ToTensor, RandomResizedCrop, Normalize, Resize
+from torchvision.transforms import (Compose, RandomHorizontalFlip, ToTensor,
+                                    RandomResizedCrop, Normalize, Resize,
+                                    RandomRotation, RandomAutocontrast)
 import os
 import argparse
 from typing import List, Dict
@@ -61,7 +63,8 @@ if __name__ == '__main__':
                                Normalize(mean=[0.1168, 0.1168, 0.1168],
                                          std=[0.0282, 0.0282, 0.0282]),
                                RandomResizedCrop(size=image_size),
-                               RandomHorizontalFlip()])
+                               RandomHorizontalFlip(),
+                               RandomAutocontrast()])
     eval_transform = Compose([ToTensor(),
                               Resize(image_size),
                               Normalize(mean=[0.1168, 0.1168, 0.1168],
@@ -74,7 +77,7 @@ if __name__ == '__main__':
     # print('train_set_std: ', train_set_std)
     
     train_loader = DataLoader(train_set, batch_size=batch_size_train, shuffle=True)
-    eval_loader = DataLoader(eval_set, batch_size=batch_size_eval, shuffle=False)
+    eval_loader = DataLoader(eval_set, batch_size=batch_size_eval, shuffle=True)
 
     optim = Adam(filter(lambda p: p.requires_grad, model_train.parameters()), lr=lr)
     scheduler = MultiStepLR(optimizer=optim, milestones=args.milestones, gamma=0.1)
@@ -99,16 +102,21 @@ if __name__ == '__main__':
                                eval_loader,
                                criterion,
                                topk,
+                               len(SHIP_CATEGORIES),
                                device)
-        
-        print('Epoch %d, eval loss %.4f, acc@ %.2f%%' % (epoch, loss, 100 * acc[1]))
+        acc_of_categories = {}
+        for i in range(len(SHIP_CATEGORIES)):
+            acc_of_categories[SHIP_CATEGORIES[i]] = f'{100*acc[i][1]:.2f}%'
+        print('Epoch %d, eval loss %.4f, acc %.2f%%' % (epoch, loss, 100 * acc['all'][1]))
+        print(f'Acc of categories: {acc_of_categories}')
         with open(log_file, 'a') as f:
-            f.write('Epoch %d, eval loss %.4f, acc@ %.2f%%' % (epoch, loss, 100 * acc[1]))
+            f.write('Epoch %d, eval loss %.4f, acc %.2f%%\n' % (epoch, loss, 100 * acc['all'][1]))
+            f.write(f'Acc of categories: {acc_of_categories}\n')
 
-        if acc[1] > best_acc:
-            best_acc = acc[1]
+        if acc['all'][1] > best_acc:
+            best_acc = acc['all'][1]
             checkpoint = {'epoch':epoch,
-                          'acc':acc[1],
+                          'acc':acc['all'][1],
                           'state_dict':model_train.state_dict()}
             os.makedirs('checkpoints',exist_ok=True)
             with open(f'logs/best_acc_{args.backbone}_{time_stamp}.pth.tar', 'wb') as f:
